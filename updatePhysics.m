@@ -34,7 +34,7 @@ for i = 1:size(comps.positions, 2)
             ind2 = floor(ind2);
             n = ground.normals(:,ind2);
             v = comps.velocities(:,i);
-            % remove any velocity in normal direction
+            % velocity is reflected and reduced to simulate friction
             newV = 0.34 * (v -  2.0 * (n' * v) * n);
             if norm(newV) < 0.1
                 newV = [0; 0];
@@ -51,7 +51,7 @@ for i = 1:size(comps.positions, 2)
                     blastDist(j) = blastDist(j) + 1.0;
                 end
             end
-            comps.health = min(100, max(0,comps.health - 100 * max(0, 0.1 - blastDist)));
+            comps.health = min(100, max(0,comps.health - 200 * max(0, 0.2 - blastDist)));
             comps.deleted = [comps.deleted i];
         end
     end

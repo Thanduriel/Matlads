@@ -10,9 +10,11 @@ tlayout.Padding = 'compact';
 tlayout.TileSpacing = 'compact';
 barAx = nexttile;
 set(barAx, 'XLim', [0 100]);
-healthBars = barh([ 100 50 30]);
+healthBars = barh([ 100 100], 'FaceColor','flat');
+xlabel('Health');
+xlim('manual');
 ax = nexttile([1 3]);
-set(ax, 'XLim',[0 1], 'YLim',[0 1], 'NextPlot', 'add');
+set(ax, 'XLim', [0 1], 'YLim', [0 1], 'NextPlot', 'add');
 grid on
 
 % 
@@ -20,8 +22,8 @@ global ground;
 ground = struct;
 indicies = linspace(0, 1, 128);
 ground.vertices = [indicies; 0.3 + 0.1 * sin(16 * indicies)];
-ground.vertices(:,1) = [0.0 0.7];
-ground.vertices(:,2) = [0.1 0.9];
+ground.vertices(:,1) = [0.0 5.0];
+ground.vertices(:,128) = [1.0 5.0];
 ground.sprite = line(ground.vertices(1,:), ground.vertices(2,:));
 ground.normals = computeNormals(ground.vertices);
 
@@ -34,11 +36,11 @@ comps.sprites = [makeactor('\pi') makeactor('\lambda')];
 comps.markers = line(0,0,'LineStyle', 'none', 'Marker', '*');
 comps.deleted = [];
 comps.health = [ 100 80 ];
-% player entity
+% active player entity
 global player;
 global numPlayers;
 numPlayers = 2;
-player = 1;
+player = numPlayers;
 
 global totalTime;
 totalTime = 0;
@@ -53,12 +55,12 @@ chargeParams.maxCharge = 1.5;
 chargeParams.minCharge = 0.5;
 chargeParams.scale = 0.25 / chargeParams.maxCharge;
 chargeParams.indicator = quiver(0,0, 1,1, 0, 'linewidth', 4, 'Visible', 'off');
-chargeParams.mode = 1; % 0 - jump, 1 - gun
+chargeParams.mode = -1; % 0 - jump, 1 - gun
 
 global keyboard;
 keyboard = struct;
 
-%pause(4);
+advanceplayer();
 % ------------- Game Loop --------------
 while true
     tic
@@ -70,7 +72,9 @@ while true
     arrayfun(@updateprite, comps.sprites, ...
         comps.positions(1,1:numPlayers), comps.positions(2,1:numPlayers));
 
-    set(healthBars, 'YData', comps.health);
+    colors = repmat([0 0.447 0.741], [numPlayers 1]);
+    colors(player,:) = [0 1 0];
+    set(healthBars, 'YData', comps.health, 'CData', colors);
     
     if (size(comps.positions, 2) > numPlayers)
         set(comps.markers, 'Visible', 'On', ...
@@ -91,6 +95,13 @@ while true
         comps.positions(:,comps.deleted) = [];
         comps.velocities(:,comps.deleted) = [];
         comps.deleted = [];
+    end
+
+    % next game turn
+    if(chargeParams.mode < 0)
+        if (norm(comps.velocities, 'fro') < 0.001)
+            chargeParams.mode = chargeParams.mode * -1;
+        end
     end
 
     % check win con
@@ -136,17 +147,19 @@ function buttonDown(~,~)
     global totalTime;
     global chargeParams;
     
-    playerPos = comps.positions(:, player);
-    cursorPos = get(gca, 'currentpoint');
-    dir = normalize(cursorPos(1,1:2)' - playerPos, 'norm');
-    chargeParams.direction = dir;
-    chargeParams.startTime = totalTime-0.25;
-    
-    playerPos = playerPos + dir * 0.05;
-    dir = dir * chargeParams.minCharge * chargeParams.scale;
-    set(chargeParams.indicator, 'Visible', 'On', ...
-        'XData', playerPos(1), 'YData', playerPos(2),...
-        'UData', dir(1), 'VData', dir(2));
+    if(chargeParams.mode > 0)
+        playerPos = comps.positions(:, player);
+        cursorPos = get(gca, 'currentpoint');
+        dir = normalize(cursorPos(1,1:2)' - playerPos, 'norm');
+        chargeParams.direction = dir;
+        chargeParams.startTime = totalTime-0.25;
+        
+        playerPos = playerPos + dir * 0.05;
+        dir = dir * chargeParams.minCharge * chargeParams.scale;
+        set(chargeParams.indicator, 'Visible', 'On', ...
+            'XData', playerPos(1), 'YData', playerPos(2),...
+            'UData', dir(1), 'VData', dir(2));
+    end
 end
 
 function buttonUp(~,~)
@@ -156,14 +169,17 @@ function buttonUp(~,~)
     global totalTime;
     
     dir = chargeParams.direction * min(chargeParams.maxCharge, totalTime - chargeParams.startTime);
-    if(chargeParams.mode == 0)
+    if (chargeParams.mode == 1)
         % apply impulse
         vel = comps.velocities(:,player);
         comps.velocities(:,player) = vel + dir * 0.4;
-    else
+        chargeParams.mode = -2;
+    elseif (chargeParams.mode == 2)
         spawnPos = comps.positions(:,player)+chargeParams.direction*0.1;
         comps.positions = [comps.positions spawnPos];
         comps.velocities = [comps.velocities dir * 0.6];
+        chargeParams.mode = -1;
+        advanceplayer();
     end
     
     set(chargeParams.indicator, 'Visible', 'Off');
