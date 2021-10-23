@@ -5,12 +5,14 @@ fig = figure('Color',[0.8 0.8 1.0], ...
     'KeyReleaseFcn',@keyRelease, ...
     'WindowButtonDownFcn', @buttonDown, ...
     'WindowButtonUpFcn', @buttonUp);
-tiledlayout(1,2)
-nexttile
-healthBars = barh([ 100 50 ]);
-nexttile
-ax = axes('Parent',fig, ...
-    'XLim',[0 1], 'YLim',[0 1], 'NextPlot', 'add');
+tlayout = tiledlayout(1,4);
+tlayout.Padding = 'compact';
+tlayout.TileSpacing = 'compact';
+barAx = nexttile;
+set(barAx, 'XLim', [0 100]);
+healthBars = barh([ 100 50 30]);
+ax = nexttile([1 3]);
+set(ax, 'XLim',[0 1], 'YLim',[0 1], 'NextPlot', 'add');
 grid on
 
 % 
@@ -31,7 +33,7 @@ comps.velocities = [-0.7 0; 0 0];
 comps.sprites = [makeactor('\pi') makeactor('\lambda')];
 comps.markers = line(0,0,'LineStyle', 'none', 'Marker', '*');
 comps.deleted = [];
-comps.health = [ 100 100 ];
+comps.health = [ 100 80 ];
 % player entity
 global player;
 global numPlayers;
@@ -67,6 +69,8 @@ while true
     % update sprites
     arrayfun(@updateprite, comps.sprites, ...
         comps.positions(1,1:numPlayers), comps.positions(2,1:numPlayers));
+
+    set(healthBars, 'YData', comps.health);
     
     if (size(comps.positions, 2) > numPlayers)
         set(comps.markers, 'Visible', 'On', ...
@@ -87,6 +91,21 @@ while true
         comps.positions(:,comps.deleted) = [];
         comps.velocities(:,comps.deleted) = [];
         comps.deleted = [];
+    end
+
+    % check win con
+    alive = comps.health > 0;
+    if sum(alive) <= 1
+        winner = find(alive);
+        txt = sprintf('PLAYER %d WINS!', winner);
+        text(0.5,0.5,txt, 'FontSize', 42, ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'middle');
+        drawnow();
+        while ~(isfield(keyboard,'escape') && keyboard.escape)
+            pause(dt);
+        end
+        break;
     end
 
     pause(dt - toc)

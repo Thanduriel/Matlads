@@ -18,6 +18,10 @@ for i = 1:size(comps.positions, 2)
         [oldPos(2) newPos(2)], ...
         ground.vertices(1,:), ground.vertices(2,:));
     if (x)
+        dir = oldPos - newPos;
+        len = norm(dir); 
+        newPositions(:, i) = [x y] + dir / len * 0.0001;
+        
         if i <= numPlayers
             % multiple intersections, determine the first
             if (size(x,1) > 1)
@@ -36,14 +40,18 @@ for i = 1:size(comps.positions, 2)
                 newV = [0; 0];
             end
             comps.velocities(:,i) = newV;
-    %            m1 = 0.0001;
-    %            m2 = 1;
-    %            impulse = (m1 * m2) / (m1 + m2) * (1 + restitution) * norm(comps.velocities(:,i));
-    %            comps.velocities(:,i) = comps.velocities(:,i) + impulse / m1 * n;
-            dir = oldPos - newPos;
-            len = norm(dir); 
-            newPositions(:, i) = [x y] + dir / len * 0.0001;
         else
+            blastDir = comps.positions(:,1:numPlayers) - newPositions(:, i);
+            blastDist = vecnorm(blastDir);
+            for j = 1:length(blastDist)
+                % reduce damage if a barrier is in between
+                if intersections([comps.positions(1,j) newPositions(1,i)],...
+                        [comps.positions(2,j) newPositions(2,i)], ...
+                        ground.vertices(1,:), ground.vertices(2,:))
+                    blastDist(j) = blastDist(j) + 1.0;
+                end
+            end
+            comps.health = min(100, max(0,comps.health - 100 * max(0, 0.1 - blastDist)));
             comps.deleted = [comps.deleted i];
         end
     end
