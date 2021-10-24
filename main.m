@@ -1,10 +1,39 @@
-% ------------- Input --------------
-
 fig = figure('Color',[0.8 0.8 1.0], ...
     'KeyPressFcn', @keyPress, ...
     'KeyReleaseFcn',@keyRelease, ...
     'WindowButtonDownFcn', @buttonDown, ...
     'WindowButtonUpFcn', @buttonUp);
+fig.Position = [100 100 800 600];
+
+global keyboard;
+keyboard = struct;
+
+introMsgString = {'MATLADS', '', 'choose your character', '', '', ''};
+introMsg = annotation("textbox", [.1 .1 .8 .8], String=introMsgString, ...
+        Color="white", BackgroundColor='Blue', ...
+        EdgeColor='Red', FontSize=30, VerticalAlignment="middle", ...
+        HorizontalAlignment="center");
+
+ui1 = uicontrol('Style', 'edit', 'String', 'π', 'Position', [400-60 240 40 40], 'FontSize',26);
+ui2 = uicontrol('Style', 'edit', 'String', 'e', 'Position', [400+20 240 40 40], 'FontSize',26);
+ui3 = uicontrol('Style', 'pushbutton','String','START', Position=[400-40 180 80 40]);
+global shouldStart;
+shouldStart = false;
+
+ui3.Callback = @startButtonPressed;
+
+while ~shouldStart && ~(isfield(keyboard,'escape') && keyboard.escape)
+    pause(0.01667);
+end
+
+playerChars = {ui1.String, ui2.String};
+
+delete(ui1);
+delete(ui2);
+delete(ui3);
+delete(introMsg);
+
+
 tlayout = tiledlayout(1,4);
 tlayout.Padding = 'compact';
 tlayout.TileSpacing = 'compact';
@@ -35,10 +64,10 @@ componentNames = {'positions', 'velocities', 'hasCollision', 'lifeTimes'};
 global comps;
 comps = struct;
 comps.positions = [0.4 0.7; 0.6, 0.5];
-comps.velocities = [-0.7 0; 0 0];
+comps.velocities = [0.0 0; 0 0];
 comps.hasCollision = [true true];
 comps.lifeTimes = [realmax realmax];
-comps.sprites = [makeactor('\pi') makeactor('\lambda')];
+comps.sprites = [makeactor(playerChars{1}) makeactor(playerChars{2})];
 comps.markers = line(0,0,'LineStyle', 'none', 'Marker', '*');
 %comps.markers2 = line(0,0,'LineStyle', 'none', 'Marker', '.');
 comps.deleted = [];
@@ -71,9 +100,6 @@ chargeParams.minCharge = 0.5;
 chargeParams.scale = 0.25 / chargeParams.maxCharge;
 chargeParams.indicator = quiver(0,0, 1,1, 0, 'linewidth', 4, 'Visible', 'off');
 chargeParams.mode = -1; % 0 - jump, 1 - gun
-
-global keyboard;
-keyboard = struct;
 
 advanceplayer();
 % ------------- Game Loop --------------
@@ -233,4 +259,9 @@ function processInputs()
     elseif (isfield(keyboard, 'downarrow') && keyboard.downarrow)
         ball.velocity(2) = -speed;
     end
+end
+
+function startButtonPressed(src,event)
+global shouldStart;
+    shouldStart = true;
 end
