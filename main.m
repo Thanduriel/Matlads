@@ -89,7 +89,7 @@ player = numPlayers;
 global totalTime;
 totalTime = 0;
 global dt;
-dt = 1 / 60;
+dt = 1 / 30;
 
 global chargeParams;
 chargeParams = struct;
@@ -211,7 +211,8 @@ function buttonDown(~,~)
         chargeParams.startTime = totalTime-0.25;
         
         playerPos = playerPos + dir * 0.05;
-        dir = dir * chargeParams.minCharge * chargeParams.scale;
+        dir = dir * min(chargeParams.maxCharge, ...
+            totalTime - chargeParams.startTime) * chargeParams.scale;%* chargeParams.minCharge * chargeParams.scale;
         set(chargeParams.indicator, 'Visible', 'On', ...
             'XData', playerPos(1), 'YData', playerPos(2),...
             'UData', dir(1), 'VData', dir(2));
@@ -224,6 +225,9 @@ function buttonUp(~,~)
     global chargeParams;
     global totalTime;
     
+    if ~chargeParams.indicator.Visible || chargeParams.mode < 0
+        return
+    end
     dir = chargeParams.direction * min(chargeParams.maxCharge, totalTime - chargeParams.startTime);
     if (chargeParams.mode == 1)
         % apply impulse
