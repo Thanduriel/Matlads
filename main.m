@@ -22,20 +22,35 @@ global ground;
 ground = struct;
 indicies = linspace(0, 1, 128);
 ground.vertices = [indicies; 0.3 + 0.1 * sin(16 * indicies)];
-ground.vertices(:,1) = [0.0 5.0];
-ground.vertices(:,128) = [1.0 5.0];
-ground.sprite = line(ground.vertices(1,:), ground.vertices(2,:));
+ground.vertices(:,1) = [0.0 -10.0];
+ground.vertices(:,2) = [0.0 10.0];
+ground.vertices(:,127) = [1.0 10.0];
+ground.vertices(:,128) = [1.0 -10.0];
+ground.shape = polyshape(ground.vertices(1,:), ground.vertices(2,:));%line(ground.vertices(1,:), ground.vertices(2,:));
 ground.normals = computeNormals(ground.vertices);
+ground.polygon = plot(ground.shape);
 
 % general data
+componentNames = {'positions', 'velocities', 'hasCollision', 'lifeTimes'};
 global comps;
 comps = struct;
 comps.positions = [0.4 0.7; 0.6, 0.5];
 comps.velocities = [-0.7 0; 0 0];
+comps.hasCollision = [true true];
+comps.lifeTimes = [realmax realmax];
 comps.sprites = [makeactor('\pi') makeactor('\lambda')];
 comps.markers = line(0,0,'LineStyle', 'none', 'Marker', '*');
+%comps.markers2 = line(0,0,'LineStyle', 'none', 'Marker', '.');
 comps.deleted = [];
-comps.health = [ 100 80 ];
+comps.health = [ 100 100 ];
+global newComps;
+newComps = struct;
+for i = 1:numel(componentNames)
+    % init with real components to determine the correct type
+    newComps.(componentNames{i}) = comps.(componentNames{i});
+    newComps.(componentNames{i})(:) = [];
+end
+
 % active player entity
 global player;
 global numPlayers;
@@ -67,7 +82,15 @@ while true
     processInputs()
     
     updatePhysics()
-    
+
+    % update life times
+    comps.lifeTimes = comps.lifeTimes - dt;
+    inds = 1:numel(comps.lifeTimes);
+    comps.deleted = [comps.deleted inds(comps.lifeTimes <= 0)];
+%     testD = sum(comps.lifeTimes <= 0);
+%     if(testD)
+%         comps.velocities(:,inds(comps.lifeTimes <= 0)) = repmat([0;0], [1 testD]);
+%     end
     % update sprites
     arrayfun(@updateprite, comps.sprites, ...
         comps.positions(1,1:numPlayers), comps.positions(2,1:numPlayers));
@@ -92,9 +115,16 @@ while true
     
     % clean up
     if comps.deleted
-        comps.positions(:,comps.deleted) = [];
-        comps.velocities(:,comps.deleted) = [];
+        for i = 1:numel(componentNames)
+            comps.(componentNames{i})(:, comps.deleted) = [];
+        end
         comps.deleted = [];
+    end
+    if newComps.positions
+        for i = 1:numel(componentNames)
+            comps.(componentNames{i}) = [comps.(componentNames{i}) newComps.(componentNames{i})];
+            newComps.(componentNames{i})(:) = [];
+        end
     end
 
     % next game turn
@@ -175,9 +205,11 @@ function buttonUp(~,~)
         comps.velocities(:,player) = vel + dir * 0.4;
         chargeParams.mode = -2;
     elseif (chargeParams.mode == 2)
-        spawnPos = comps.positions(:,player)+chargeParams.direction*0.1;
+        spawnPos = comps.positions(:,player);%+chargeParams.direction*0.1;
         comps.positions = [comps.positions spawnPos];
         comps.velocities = [comps.velocities dir * 0.6];
+        comps.hasCollision = [comps.hasCollision true];
+        comps.lifeTimes = [comps.lifeTimes realmax];
         chargeParams.mode = -1;
         advanceplayer();
     end
