@@ -80,32 +80,8 @@ function spawnExplosion(position, damage)
     terrain = subtract(ground.shape, blast);
     ground.vertices = terrain.Vertices';
     ground.shape = terrain;
-%    blastDir = ground.vertices - position;
-%    pointNormals = [ground.normals [0; 0]] + [[0;0] ground.normals];
-%    oriented = dot(blastDir,pointNormals,1) < 0;
-%    blastDist = vecnorm(blastDir(:,oriented));
-%    ground.vertices(:,oriented) = ground.vertices(:,oriented) ...
-%        + repmat(displacement./blastDist, [2 1]).* blastDir(:,oriented);
-%     blastDist = vecnorm(blastDir);
-%     displacement = max(0,maxRange - blastDist).^2 * maxRange / maxRangeSq;
-%     ground.vertices = ground.vertices ...
-%         + repmat(displacement./blastDist, [2 1]).* blastDir;
 
-    % fix degenerated terain
-    [xs, ys, ind1, ind2] = intersections(ground.vertices(1,:), ground.vertices(2,:));
-    if xs
-        ind1 = sort(floor(ind1));
-        ind2 = sort(floor(ind2));
-        % segment that is no longer connected
-
-%          ground.vertices = [ground.vertices(:,1:ind1(1)) ...
-%              ground.vertices(:,ind2(end)+1:end)...
-%              [nan;nan] ...
-%              ground.vertices(:,ind1(end)+1:ind2(1))];
-    end
     set(ground.polygon, 'Shape', ground.shape);
-%    ground.shape.Vertices = terrain.Vertices;
-%    set(ground.sprite, 'XData', ground.vertices(1,:), 'YData', ground.vertices(2,:));
     ground.normals = computeNormals(ground.vertices);
 
     % particle effect

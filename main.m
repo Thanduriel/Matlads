@@ -67,7 +67,7 @@ comps.positions = [0.4 0.7; 0.6, 0.5];
 comps.velocities = [0.0 0; 0 0];
 comps.hasCollision = [true true];
 comps.lifeTimes = [realmax realmax];
-comps.sprites = [makeactor(playerChars{1}) makeactor(playerChars{2})];
+comps.sprites = [makeActor(playerChars{1}) makeActor(playerChars{2})];
 comps.markers = line(0,0,'LineStyle', 'none', 'Marker', '*');
 %comps.markers2 = line(0,0,'LineStyle', 'none', 'Marker', '.');
 comps.deleted = [];
@@ -101,7 +101,7 @@ chargeParams.scale = 0.25 / chargeParams.maxCharge;
 chargeParams.indicator = quiver(0,0, 1,1, 0, 'linewidth', 4, 'Visible', 'off');
 chargeParams.mode = -1; % 0 - jump, 1 - gun
 
-advanceplayer();
+advancePlayer();
 % ------------- Game Loop --------------
 while true
     tic
@@ -118,7 +118,7 @@ while true
 %         comps.velocities(:,inds(comps.lifeTimes <= 0)) = repmat([0;0], [1 testD]);
 %     end
     % update sprites
-    arrayfun(@updateprite, comps.sprites, ...
+    arrayfun(@updateSprite, comps.sprites, ...
         comps.positions(1,1:numPlayers), comps.positions(2,1:numPlayers));
 
     colors = repmat([0 0.447 0.741], [numPlayers 1]);
@@ -241,7 +241,7 @@ function buttonUp(~,~)
         comps.hasCollision = [comps.hasCollision true];
         comps.lifeTimes = [comps.lifeTimes realmax];
         chargeParams.mode = -1;
-        advanceplayer();
+        advancePlayer();
     end
     
     set(chargeParams.indicator, 'Visible', 'Off');
